@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ROSA تعلم الإنجليزية من خلال القصص</title>
+<!-- Bootstrap CSS -->
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+<!-- Font Awesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://code.responsivevoice.org/responsivevoice.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/annyang/2.6.1/annyang.min.js"></script>
+<style>
+body {
+    font-family: 'Roboto', sans-serif;
+    background-color: #f8f9fa;
+    color: #333;
+    transition: background-color 0.3s, color 0.3s;
+}
+body.dark-mode {
+    background-color: #343a40;
+    color: #fff;
+}
+header, footer {
+    background-color: #343a40;
+    color: #fff;
+    padding: 1em;
+    text-align: center;
+}
+.container {
+    margin-top: 2%;
+}
+textarea, .translation-box, #textDisplay, #translationText {
+    width: 100%;
+    margin-top: 1em;
+    padding: 1em;
+    border: 1px solid #ccc;
+    border-radius: 0.5em;
+    background-color: #f8f9fa;
+}
+.highlight {
+    background-color: lightblue;
+    cursor: pointer;
+}
+.highlight-correct {
+    background-color: lightgreen;
+}
+.highlight-incorrect {
+    background-color: #ffb3b3;
+}
+.hidden-section {
+    margin-top: 2%;
+    text-align: center;
+}
+button.btn-primary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    margin-top: 1em;
+    border: none;
+}
+button.btn-secondary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    margin-top: 1em;
+    border: none;
+}
+.loader {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #3498db;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    animation: spin 2s linear infinite;
+    position: absolute;
+    right: 10px;
+    display: none;
+}
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+@media (min-width: 576px) {
+    .container {
+        max-width: 540px;
+    }
+}
+@media (min-width: 768px) {
+    .container {
+        max-width: 720px;
+    }
+}
+@media (min-width: 992px) {
+    .container {
+        max-width: 960px;
+    }
+}
+@media (min-width: 1200px) {
+    .container {
+        max-width: 1140px;
+    }
+}
+</style>
+</head>
+<body>
+<!-- Header -->
+<header>
+    <h1> تعلم الإنجليزية من خلال القصص</h1>
+    <button class="btn btn-secondary" onclick="toggleDarkMode()">Toggle Dark Mode</button>
+</header>
+
+<!-- Main Content Area -->
+<div class="container">
+    <textarea id="storyInput" placeholder="Enter a story or English text"></textarea>
+    <div class="form-group mt-2">
+        <label for="voiceSelect">Select Voice:</label>
+        <select id="voiceSelect" class="form-control">
+            <option value="UK English Female">UK English Female</option>
+            <option value="US English Female">US English Female</option>
+            <option value="UK English Male">UK English Male</option>
+            <option value="Arabic Male">Arabic Male</option>
+            <option value="Arabic Female">Arabic Female</option>
+        </select>
+    </div>
+    <button class="btn btn-primary" onclick="processText()">
+        <i class="fas fa-headphones"></i> Start Reading
+    </button>
+    <div id="textDisplay"></div>
+    <div id="translationText"></div>
+    <div id="translationOutput" class="translation-box"></div>
+    <div id="userReadingText" class="translation-box"></div>
+</div>
+
+<!-- Hidden Section for Start Training Button -->
+<div class="hidden-section" id="trainingSection">
+    <div id="originalTextDisplay" class="translation-box"></div>
+    <button class="btn btn-primary" onclick="startListening()">
+        <i class="fas fa-microphone"></i> Start Training
+        <div class="loader" id="loader"></div>
+    </button>
+    <button class="btn btn-secondary" onclick="stopListening()">
+        <i class="fas fa-stop"></i> Stop
+    </button>
+    <div id="realTimeSpokenText" class="translation-box"></div>
+    <div id="accuracy" class="translation-box mt-2"></div>
+</div>
+
+<!-- Footer -->
+<footer class="footer mt-auto py-3">
+    <div class="container text-center">
+        <span class="text-muted">© 2024  تعلم الإنجليزية من خلال القصص. All rights reserved.</span>
+    </div>
+</footer>
+
+<!-- JavaScript -->
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script>
+function processText() {
+    const storyInput = document.getElementById('storyInput').value.trim();
+    const selectedVoice = document.getElementById('voiceSelect').value;
+
+    if (!storyInput) {
+        alert('Please enter some text.');
+        return;
+    }
+
+    localStorage.setItem('storyText', storyInput);
+
+    const words = storyInput.split(' ').map(word => `<span class="highlight" onclick="translateWord('${word}')">${word}</span>`).join(' ');
+
+    document.getElementById('textDisplay').innerText = storyInput;
+    document.getElementById('translationText').innerHTML = words;
+
+    responsiveVoice.speak(storyInput, selectedVoice, {
+        rate: 1,
+        pitch: 1,
+        volume: 1
+    });
+
+    document.getElementById('originalTextDisplay').innerText = storyInput;
+}
+
+async function translateWord(word) {
+    try {
+        const response = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=ar&dt=t&q=${encodeURIComponent(word)}`);
+        const data = await response.json();
+        const translatedWord = data[0][0][0];
+        document.getElementById('translationOutput').innerText = `Translation: ${translatedWord}`;
+    } catch (error) {
+        console.error('Translation error:', error);
+    }
+}
+
+function startListening() {
+    if (!annyang) {
+        alert('Speech recognition is not supported by this browser.');
+        return;
+    }
+
+    document.getElementById('loader').style.display = 'block';
+
+    annyang.addCommands({
+        'stop': stopListening
+    });
+
+    annyang.start();
+
+    annyang.addCallback('result', function(phrases) {
+        const spokenText = phrases[0];
+        document.getElementById('realTimeSpokenText').innerText = `Your Reading: ${spokenText}`;
+        document.getElementById('userReadingText').innerText = spokenText;
+        compareReading(spokenText, document.getElementById('textDisplay').innerText);
+    });
+
+    annyang.addCallback('error', function(error) {
+        console.error('Speech recognition error:', error);
+        alert(`Speech recognition error: ${error.error} - ${error.message}`);
+    });
+}
+
+function stopListening() {
+    if (annyang) {
+        annyang.abort();
+    }
+    document.getElementById('loader').style.display = 'none';
+}
+
+function compareReading(spokenText, originalText) {
+    const normalizeText = text => text.toLowerCase().replace(/[\W_]+/g, ' ').trim();
+
+    document.getElementById('realTimeSpokenText').innerHTML = '';
+    const spokenWords = normalizeText(spokenText).split(' ');
+    const originalWords = normalizeText(originalText).split(' ');
+
+    let correctCount = 0;
+    originalWords.forEach((word, index) => {
+        const isCorrect = spokenWords[index] === word;
+        if (isCorrect) correctCount++;
+        const span = document.createElement('span');
+        span.textContent = word + ' ';
+        span.className = isCorrect ? 'highlight-correct' : 'highlight-incorrect';
+        document.getElementById('realTimeSpokenText').appendChild(span);
+    });
+
+    const accuracy = (correctCount / originalWords.length) * 100;
+    document.getElementById('accuracy').innerText = `Accuracy: ${accuracy.toFixed(2)}%`;
+}
+
+function toggleDarkMode() {
+    document.body.classList.toggle('dark-mode');
+}
+</script>
+</body>
+</html>
